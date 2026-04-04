@@ -1,0 +1,109 @@
+{
+  "title": "新北樂圾車",
+  "config": {
+    "step": {
+      "user": {
+        "title": "用地圖找最近收運點",
+        "description": "在地圖上拖動大頭針到您要監控的地點，系統會列出最近的 20 個收運點。",
+        "data": {
+          "location": "位置"
+        }
+      },
+      "results": {
+        "title": "選擇收運點",
+        "description": "以下列出最近的 20 個收運點，格式：距離｜收運點（行政區 里）｜所有表定時間",
+        "data": {
+          "point": "收運點"
+        }
+      },
+      "settings": {
+        "title": "選擇啟用路線",
+        "data": {
+          "enabled_route_keys": "啟用路線"
+        },
+        "data_description": {
+          "enabled_route_keys": "選擇此清運點要啟用的路線，至少保留一條。"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "無法連線至新北市開放資料平台，請確認網路連線後再試",
+      "no_results": "找不到符合條件的收運點，請嘗試其他關鍵字",
+      "select_at_least_one_route": "至少需要選擇一條路線。"
+    },
+    "abort": {
+      "already_configured": "此收運點已設定"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "更新啟用路線",
+        "data": {
+          "enabled_route_keys": "啟用路線"
+        },
+        "data_description": {
+          "enabled_route_keys": "選擇此清運點要啟用的路線，至少保留一條。"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "nearest_truck_distance": {
+        "name": "垃圾車距離"
+      },
+      "next_collection": {
+        "name": "表定清運時間"
+      },
+      "collection_status": {
+        "name": "垃圾車狀態"
+      },
+      "eta_minutes": {
+        "name": "預估抵達時間"
+      }
+    },
+    "binary_sensor": {
+      "garbage_today": {
+        "name": "今日收垃圾",
+        "state": {
+          "on": "有",
+          "off": "無"
+        }
+      },
+      "recycling_today": {
+        "name": "今日資源回收",
+        "state": {
+          "on": "有",
+          "off": "無"
+        }
+      },
+      "food_scraps_today": {
+        "name": "今日廚餘回收",
+        "state": {
+          "on": "有",
+          "off": "無"
+        }
+      },
+      "truck_departed": {
+        "name": "垃圾車已離開",
+        "state": {
+          "on": "是",
+          "off": "否"
+        }
+      }
+    }
+  },
+  "services": {
+    "update": {
+      "name": "手動更新",
+      "description": "手動觸發更新垃圾車位置資料。",
+      "fields": {
+        "entry_ids": {
+          "name": "設定項目 ID",
+          "description": "指定要更新的設定項目 ID 清單，留空則更新全部。"
+        }
+      }
+    }
+  }
+}

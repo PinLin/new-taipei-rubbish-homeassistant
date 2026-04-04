@@ -1,0 +1,109 @@
+{
+  "title": "New Taipei Rubbish",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Choose a location",
+        "description": "Place the pin where you want to monitor collection times. The integration will list the 20 nearest collection points.",
+        "data": {
+          "location": "Location"
+        }
+      },
+      "results": {
+        "title": "Choose a collection point",
+        "description": "The 20 nearest collection points are listed below. Format: distance｜point (district village)｜scheduled times",
+        "data": {
+          "point": "Collection point"
+        }
+      },
+      "settings": {
+        "title": "Choose enabled routes",
+        "data": {
+          "enabled_route_keys": "Enabled routes"
+        },
+        "data_description": {
+          "enabled_route_keys": "Choose which routes at this collection point should remain active."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the New Taipei City Open Data Platform. Please check your network connection.",
+      "no_results": "No collection points found. Please try a different location.",
+      "select_at_least_one_route": "Select at least one route."
+    },
+    "abort": {
+      "already_configured": "This collection point is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update enabled routes",
+        "data": {
+          "enabled_route_keys": "Enabled routes"
+        },
+        "data_description": {
+          "enabled_route_keys": "Choose which routes at this collection point should remain active."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "nearest_truck_distance": {
+        "name": "Truck distance"
+      },
+      "next_collection": {
+        "name": "Scheduled collection time"
+      },
+      "collection_status": {
+        "name": "Truck status"
+      },
+      "eta_minutes": {
+        "name": "Estimated arrival time"
+      }
+    },
+    "binary_sensor": {
+      "garbage_today": {
+        "name": "Garbage collection today",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "recycling_today": {
+        "name": "Recycling today",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "food_scraps_today": {
+        "name": "Food waste collection today",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      },
+      "truck_departed": {
+        "name": "Truck has left",
+        "state": {
+          "on": "Yes",
+          "off": "No"
+        }
+      }
+    }
+  },
+  "services": {
+    "update": {
+      "name": "Refresh truck data",
+      "description": "Manually refresh garbage truck location data.",
+      "fields": {
+        "entry_ids": {
+          "name": "Entry IDs",
+          "description": "Config entry IDs to refresh. Leave empty to refresh all entries."
+        }
+      }
+    }
+  }
+}

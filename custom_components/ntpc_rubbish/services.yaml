@@ -1,0 +1,10 @@
+update:
+  name: 手動更新
+  description: 手動觸發更新垃圾車位置資料。
+  fields:
+    entry_ids:
+      name: 設定項目 ID
+      description: 指定要更新的設定項目 ID 清單，留空則更新全部。
+      example: ["abc123def456"]
+      selector:
+        object:
