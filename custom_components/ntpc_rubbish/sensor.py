@@ -117,6 +117,20 @@ class _NtpcRubbishBaseSensor(
             ),
         }
 
+    def _with_truck_coordinates(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Replace point coordinates with live truck coordinates when available."""
+        d = self._data
+        attrs = dict(attrs)
+        attrs.pop("latitude", None)
+        attrs.pop("longitude", None)
+        if d is None:
+            return attrs
+        if d.nearest_truck_lat is None or d.nearest_truck_lon is None:
+            return attrs
+        attrs["latitude"] = d.nearest_truck_lat
+        attrs["longitude"] = d.nearest_truck_lon
+        return attrs
+
 
 class NearestTruckDistanceSensor(_NtpcRubbishBaseSensor):
     """Shows the straight-line distance to the nearest truck on the same route."""
@@ -135,13 +149,7 @@ class NearestTruckDistanceSensor(_NtpcRubbishBaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = super().extra_state_attributes
-        if self._data:
-            if self._data.nearest_truck_lat is not None:
-                attrs["latitude"] = self._data.nearest_truck_lat
-            if self._data.nearest_truck_lon is not None:
-                attrs["longitude"] = self._data.nearest_truck_lon
-        return attrs
+        return self._with_truck_coordinates(super().extra_state_attributes)
 
 
 class NextCollectionSensor(_NtpcRubbishBaseSensor):
@@ -186,6 +194,10 @@ class CollectionStatusSensor(_NtpcRubbishBaseSensor):
         if self._data is None:
             return None
         return self._data.collection_status
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return self._with_truck_coordinates(super().extra_state_attributes)
 
 
 class EtaMinutesSensor(_NtpcRubbishBaseSensor):

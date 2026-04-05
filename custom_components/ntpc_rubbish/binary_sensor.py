@@ -81,6 +81,16 @@ class _NtpcRubbishBaseBinarySensor(
     def _data(self) -> CollectionPointData | None:
         return self.coordinator.data
 
+    @property
+    def extra_state_attributes(self) -> dict[str, float]:
+        d = self._data
+        if d is None:
+            return {}
+        return {
+            "latitude": d.latitude,
+            "longitude": d.longitude,
+        }
+
 
 class GarbageTodaySensor(_NtpcRubbishBaseBinarySensor):
     """On when general garbage is collected today."""
@@ -143,12 +153,12 @@ class TruckDepartedSensor(_NtpcRubbishBaseBinarySensor):
 
     @property
     def extra_state_attributes(self) -> dict[str, str | None]:
+        attrs = super().extra_state_attributes
         if self._data is None:
-            return {}
-        return {
-            "departed_at": (
-                self._data.truck_departed_at.isoformat()
-                if self._data.truck_departed_at
-                else None
-            )
-        }
+            return attrs
+        attrs["departed_at"] = (
+            self._data.truck_departed_at.isoformat()
+            if self._data.truck_departed_at
+            else None
+        )
+        return attrs

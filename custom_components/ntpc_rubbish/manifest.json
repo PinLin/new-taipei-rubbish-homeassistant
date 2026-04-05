@@ -1,8 +1,8 @@
 {
   "domain": "ntpc_rubbish",
   "name": "New Taipei Rubbish",
-  "version": "0.1.0",
-  "documentation": "https://github.com/PinLin/ntpc-rubbish-homeassistant",
+  "version": "0.1.1",
+  "documentation": "https://github.com/PinLin/new-taipei-rubbish-homeassistant",
   "requirements": [],
   "dependencies": [],
   "codeowners": ["@PinLin"],
