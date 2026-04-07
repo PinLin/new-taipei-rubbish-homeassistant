@@ -3,12 +3,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.util import dt as dt_util
 
 from .const import CONF_LATITUDE, CONF_LONGITUDE, CONF_POINT_NAME, CONF_SCHEDULED_TIME, DOMAIN
 from .coordinator import CollectionPointData, NtpcRubbishCoordinator
@@ -20,20 +19,6 @@ from .entity import (
     point_entity_id,
     point_object_id,
 )
-
-
-def _format_relative_collection_time(value: datetime | None) -> str | None:
-    """Format a collection datetime for display."""
-    if value is None:
-        return None
-
-    local_dt = dt_util.as_local(value)
-    today = dt_util.now().date()
-    if local_dt.date() == today:
-        return local_dt.strftime("今天 %H:%M")
-    if (local_dt.date() - today).days == 1:
-        return local_dt.strftime("明天 %H:%M")
-    return local_dt.strftime("%Y-%m-%d %H:%M")
 
 
 async def async_setup_entry(
@@ -156,15 +141,16 @@ class NextCollectionSensor(_NtpcRubbishBaseSensor):
     """Shows the scheduled collection time for the current active run."""
 
     _attr_icon = "mdi:calendar-clock"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
         super().__init__(coordinator, entry, device_id, point_name, scheduled_times, "next_collection")
 
     @property
-    def native_value(self) -> str | None:
+    def native_value(self) -> datetime | None:
         if self._data is None:
             return None
-        return _format_relative_collection_time(self._data.scheduled_collection_time)
+        return self._data.scheduled_collection_time
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -204,15 +190,16 @@ class EtaMinutesSensor(_NtpcRubbishBaseSensor):
     """Shows the estimated arrival time of the nearest truck."""
 
     _attr_icon = "mdi:timer-outline"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
         super().__init__(coordinator, entry, device_id, point_name, scheduled_times, "eta_minutes")
 
     @property
-    def native_value(self) -> str | None:
+    def native_value(self) -> datetime | None:
         if self._data is None:
             return None
-        return _format_relative_collection_time(self._data.estimated_arrival_time)
+        return self._data.estimated_arrival_time
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
