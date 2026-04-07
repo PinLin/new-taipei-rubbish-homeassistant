@@ -47,7 +47,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 if entry_ids
                 else all_coordinators
             )
-            for coord in targets.values():
+            # Refresh against a snapshot so concurrent entry adds/removals do not
+            # mutate the dictionary during iteration.
+            for coord in list(targets.values()):
                 await coord.async_request_refresh()
 
         hass.services.async_register(DOMAIN, "update", _handle_update)

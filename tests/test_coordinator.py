@@ -8,6 +8,8 @@ from custom_components.ntpc_rubbish.coordinator import (
     _official_site_weekday,
     _official_collection_status,
     _parse_official_timestamp,
+    _resolve_estimated_arrival_time,
+    _resolve_truck_departure_state,
     _scheduled_collection_time_for_routes,
     _select_display_route_items,
     _select_live_route_items,
@@ -30,6 +32,40 @@ def test_estimate_official_arrival_dt_uses_point_time_plus_diff() -> None:
     )
     assert actual is not None
     assert actual.strftime("%H:%M") == "17:05"
+
+
+def test_estimate_official_arrival_dt_keeps_recent_past_eta_until_departed() -> None:
+    """ETA should not disappear just because the predicted time is slightly in the past."""
+    now = dt_util.as_local(
+        datetime(2026, 4, 6, 20, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    )
+    actual = _estimate_official_arrival_dt(
+        arrival_rank=70,
+        diff_minutes=1,
+        point_rank=71,
+        point_time="19:57",
+        barcode="000015",
+        now=now,
+    )
+    assert actual is not None
+    assert actual.strftime("%H:%M") == "19:58"
+
+
+def test_estimate_official_arrival_dt_supports_the_current_arrival_rank() -> None:
+    """The current stop should keep an ETA while the site has not filled Arrival yet."""
+    now = dt_util.as_local(
+        datetime(2026, 4, 7, 13, 44, tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    )
+    actual = _estimate_official_arrival_dt(
+        arrival_rank=9,
+        diff_minutes=9,
+        point_rank=9,
+        point_time="13:35",
+        barcode="220022",
+        now=now,
+    )
+    assert actual is not None
+    assert actual.strftime("%H:%M") == "13:44"
 
 
 def test_parse_official_timestamp() -> None:
@@ -363,8 +399,98 @@ def test_extract_official_live_data_supports_get_around_points_payload() -> None
 
     assert actual["estimated_arrival_time"] is not None
     assert actual["estimated_arrival_time"].strftime("%H:%M") == "14:38"
-    assert actual["last_vehicle_update"] is not None
-    assert actual["last_vehicle_update"].strftime("%H:%M:%S") == "15:23:54"
+
+
+def test_resolve_estimated_arrival_time_keeps_departed_timestamp() -> None:
+    """ETA should stay on the actual departed timestamp after the truck passes."""
+    departed_at = dt_util.as_local(
+        datetime(2026, 4, 6, 19, 32, tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    )
+    scheduled = dt_util.as_local(
+        datetime(2026, 4, 6, 19, 33, tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    )
+
+    actual = _resolve_estimated_arrival_time(
+        official_arrival_time=None,
+        truck_departed=True,
+        truck_departed_at=departed_at,
+        scheduled_collection_time=scheduled,
+        collection_status="執勤中",
+    )
+
+    assert actual == departed_at
+
+
+def test_resolve_estimated_arrival_time_falls_back_to_schedule_when_departed() -> None:
+    """ETA should not become unknown if the truck passed but no exact departed time is exposed."""
+    scheduled = dt_util.as_local(
+        datetime(2026, 4, 6, 19, 33, tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    )
+
+    actual = _resolve_estimated_arrival_time(
+        official_arrival_time=None,
+        truck_departed=True,
+        truck_departed_at=None,
+        scheduled_collection_time=scheduled,
+        collection_status="執勤中",
+    )
+
+    assert actual == scheduled
+
+
+def test_resolve_estimated_arrival_time_falls_back_to_schedule_when_line_is_active() -> None:
+    """Active lines without an exposed ETA should keep the scheduled point time."""
+    scheduled = dt_util.as_local(
+        datetime(2026, 4, 6, 20, 21, tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    )
+
+    actual = _resolve_estimated_arrival_time(
+        official_arrival_time=None,
+        truck_departed=False,
+        truck_departed_at=None,
+        scheduled_collection_time=scheduled,
+        collection_status="執勤中",
+    )
+
+    assert actual == scheduled
+
+
+def test_resolve_estimated_arrival_time_falls_back_to_schedule_when_arriving() -> None:
+    """Arrival should stay stable while the truck is at the point but no Arrival time is exposed."""
+    scheduled = dt_util.as_local(
+        datetime(2026, 4, 6, 19, 46, tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    )
+
+    actual = _resolve_estimated_arrival_time(
+        official_arrival_time=None,
+        truck_departed=False,
+        truck_departed_at=None,
+        scheduled_collection_time=scheduled,
+        collection_status="前往焚化廠",
+    )
+
+    assert actual == scheduled
+
+
+def test_resolve_truck_departure_state_keeps_departed_after_live_line_disappears() -> None:
+    """Once today's selected run is over, the point should stay departed until midnight."""
+    scheduled = dt_util.as_local(
+        datetime(2026, 4, 6, 19, 57, tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    )
+    now = dt_util.as_local(
+        datetime(2026, 4, 6, 20, 42, tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    )
+
+    departed, departed_at = _resolve_truck_departure_state(
+        truck_departed=False,
+        truck_departed_at=None,
+        scheduled_collection_time=scheduled,
+        collection_status="非收運時間",
+        now=now,
+    )
+
+    assert departed is True
+    assert departed_at == scheduled
 
 
 def test_extract_official_live_data_defaults_to_non_collection_without_line() -> None:

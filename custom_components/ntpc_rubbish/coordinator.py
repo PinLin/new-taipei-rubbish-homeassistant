@@ -240,7 +240,7 @@ def _estimate_official_arrival_dt(
         or diff_minutes == 65535
         or not barcode
         or barcode == "000006"
-        or point_rank <= arrival_rank
+        or point_rank < arrival_rank
         or point_rank > arrival_rank + 15
     ):
         return None
@@ -249,7 +249,7 @@ def _estimate_official_arrival_dt(
     if point_dt is None:
         return None
     estimated = point_dt + timedelta(minutes=diff_minutes)
-    return estimated if estimated >= now else None
+    return estimated
 
 
 def _select_live_route_items(
@@ -469,6 +469,46 @@ def _extract_official_live_data(
     }
 
 
+def _resolve_estimated_arrival_time(
+    official_arrival_time: datetime | None,
+    truck_departed: bool,
+    truck_departed_at: datetime | None,
+    scheduled_collection_time: datetime | None,
+    collection_status: str | None,
+) -> datetime | None:
+    """Keep ETA stable when the truck has just arrived or passed the point."""
+    if official_arrival_time is not None:
+        return official_arrival_time
+    if truck_departed:
+        return truck_departed_at or scheduled_collection_time
+    if (
+        scheduled_collection_time is not None
+        and collection_status
+        in {"執勤中", "暫時離開", "回場轉運中", "發生路況障礙", "前往焚化廠"}
+    ):
+        return scheduled_collection_time
+    return None
+
+
+def _resolve_truck_departure_state(
+    truck_departed: bool,
+    truck_departed_at: datetime | None,
+    scheduled_collection_time: datetime | None,
+    collection_status: str | None,
+    now: datetime,
+) -> tuple[bool, datetime | None]:
+    """Keep departed state once today's selected run has already ended."""
+    if truck_departed:
+        return True, truck_departed_at
+    if (
+        collection_status == "非收運時間"
+        and scheduled_collection_time is not None
+        and scheduled_collection_time <= now
+    ):
+        return True, truck_departed_at or scheduled_collection_time
+    return False, truck_departed_at
+
+
 
 class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
     """Coordinator that polls vehicle location and computes collection status."""
@@ -672,7 +712,25 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
 
         effective_last_vehicle_update = last_vehicle_update or self._last_vehicle_update
 
-        estimated_arrival_time = official_arrival_time
+        effective_truck_departed, effective_truck_departed_at = _resolve_truck_departure_state(
+            truck_departed=(
+                official_live["truck_departed"] if official_eta_payload is not None else False
+            ),
+            truck_departed_at=(
+                official_live["truck_departed_at"] if official_eta_payload is not None else None
+            ),
+            scheduled_collection_time=scheduled_collection_time,
+            collection_status=collection_status,
+            now=now,
+        )
+
+        estimated_arrival_time = _resolve_estimated_arrival_time(
+            official_arrival_time=official_arrival_time,
+            truck_departed=effective_truck_departed,
+            truck_departed_at=effective_truck_departed_at,
+            scheduled_collection_time=scheduled_collection_time,
+            collection_status=collection_status,
+        )
         data_staleness_seconds = (
             max(0, int((dt_util.now() - effective_last_vehicle_update).total_seconds()))
             if effective_last_vehicle_update is not None
@@ -707,6 +765,6 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
             estimated_arrival_time=estimated_arrival_time,
             last_vehicle_update=effective_last_vehicle_update,
             data_staleness_seconds=data_staleness_seconds,
-            truck_departed=official_live["truck_departed"] if official_eta_payload is not None else False,
-            truck_departed_at=official_live["truck_departed_at"] if official_eta_payload is not None else None,
+            truck_departed=effective_truck_departed,
+            truck_departed_at=effective_truck_departed_at,
         )
