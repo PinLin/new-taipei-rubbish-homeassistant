@@ -15,6 +15,7 @@ from homeassistant.util import dt as dt_util
 from .api import NtpcRubbishApiClient
 from .const import (
     CONF_ROUTES,
+    CONF_UPDATE_INTERVAL,
     DAY_FIELDS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -525,11 +526,12 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
         self._route_last_updated: datetime | None = None
         self._last_vehicle_update: datetime | None = None
 
+        update_interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_SCAN_INTERVAL)
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN}_{entry.entry_id}",
-            update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
+            update_interval=timedelta(seconds=update_interval),
         )
 
     def _get_routes(self) -> list[dict[str, Any]]:

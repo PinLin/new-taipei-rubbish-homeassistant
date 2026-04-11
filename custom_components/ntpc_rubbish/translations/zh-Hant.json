@@ -24,6 +24,15 @@
         "data_description": {
           "enabled_route_keys": "選擇此清運點要啟用的路線，至少保留一條。"
         }
+      },
+      "interval": {
+        "title": "設定更新間隔",
+        "data": {
+          "update_interval": "更新間隔（秒）"
+        },
+        "data_description": {
+          "update_interval": "每隔幾秒向 API 查詢一次垃圾車位置資料，最少 30 秒。"
+        }
       }
     },
     "error": {
@@ -38,12 +47,15 @@
   "options": {
     "step": {
       "init": {
-        "title": "更新啟用路線",
+        "title": "更新設定",
+        "description": "調整此收運點的啟用路線，以及整合向 API 查詢即時位置資料的頻率。",
         "data": {
-          "enabled_route_keys": "啟用路線"
+          "enabled_route_keys": "啟用路線",
+          "update_interval": "更新間隔（秒）"
         },
         "data_description": {
-          "enabled_route_keys": "選擇此清運點要啟用的路線，至少保留一條。"
+          "enabled_route_keys": "選擇此清運點要啟用的路線，至少保留一條。",
+          "update_interval": "每隔幾秒向 API 查詢一次垃圾車位置資料，最少 30 秒。"
         }
       }
     }

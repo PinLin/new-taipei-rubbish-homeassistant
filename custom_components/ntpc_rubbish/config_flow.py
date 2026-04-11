@@ -12,6 +12,9 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     LocationSelector,
     LocationSelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -26,6 +29,8 @@ from .const import (
     CONF_POINT_NAME,
     CONF_ROUTES,
     CONF_SCHEDULED_TIME,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
 from .entity import format_scheduled_times, route_key
@@ -145,6 +150,8 @@ class NtpcRubbishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._filtered_points: list[dict[str, Any]] = []
         self._selected_point: dict[str, Any] | None = None
         self._selected_routes: list[dict[str, Any]] = []
+        self._enabled_routes: list[dict[str, Any]] = []
+        self._update_interval: int = DEFAULT_SCAN_INTERVAL
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -193,8 +200,9 @@ class NtpcRubbishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if point["selection_key"] == selected_key:
                     self._selected_point = point["point"]
                     self._selected_routes = point["routes"]
+                    self._enabled_routes = point["routes"]
                     if len(self._selected_routes) == 1:
-                        return await self._async_create_config_entry(self._selected_routes)
+                        return await self.async_step_interval()
                     return await self.async_step_settings()
 
         options = [
@@ -254,7 +262,8 @@ class NtpcRubbishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not enabled_routes:
                     errors["base"] = "select_at_least_one_route"
                 else:
-                    return await self._async_create_config_entry(enabled_routes)
+                    self._enabled_routes = enabled_routes
+                    return await self.async_step_interval()
 
         route_options = [
             {"value": route_key(route), "label": _route_selector_label(route)}
@@ -280,6 +289,24 @@ class NtpcRubbishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_interval(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.FlowResult:
+        if user_input is not None:
+            self._update_interval = int(user_input[CONF_UPDATE_INTERVAL])
+            return await self._async_create_config_entry()
+
+        return self.async_show_form(
+            step_id="interval",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_UPDATE_INTERVAL, default=DEFAULT_SCAN_INTERVAL): NumberSelector(
+                        NumberSelectorConfig(min=30, step=1, mode=NumberSelectorMode.BOX)
+                    )
+                }
+            ),
+        )
+
     # ------------------------------------------------------------------ #
     # Options flow entry point
     # ------------------------------------------------------------------ #
@@ -302,9 +329,7 @@ class NtpcRubbishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             cache["data"] = await client.get_all_routes()
         return cache["data"]
 
-    async def _async_create_config_entry(
-        self, enabled_routes: list[dict[str, Any]]
-    ) -> config_entries.FlowResult:
+    async def _async_create_config_entry(self) -> config_entries.FlowResult:
         """Create the config entry for the selected collection point."""
         point = self._selected_point
         assert point is not None
@@ -326,7 +351,7 @@ class NtpcRubbishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         ]
         data = {
             CONF_ROUTES: all_routes,
-            CONF_ENABLED_ROUTE_KEYS: [route_key(route) for route in enabled_routes],
+            CONF_ENABLED_ROUTE_KEYS: [route_key(route) for route in self._enabled_routes],
             CONF_POINT_NAME: point.get("name", ""),
             CONF_DISTRICT: point.get("city", ""),
             CONF_LATITUDE: lat,
@@ -339,7 +364,11 @@ class NtpcRubbishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         village = point.get("village", "")
         title = f"{data[CONF_POINT_NAME]}（{data[CONF_DISTRICT]} {village}）"
-        return self.async_create_entry(title=title, data=data)
+        return self.async_create_entry(
+            title=title,
+            data=data,
+            options={CONF_UPDATE_INTERVAL: self._update_interval},
+        )
 
 
 class NtpcRubbishOptionsFlow(config_entries.OptionsFlow):
@@ -359,6 +388,8 @@ class NtpcRubbishOptionsFlow(config_entries.OptionsFlow):
             or [route_key(route) for route in routes]
         )
 
+        update_interval = self._entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_SCAN_INTERVAL)
+
         if user_input is not None:
             selected_route_keys = user_input.get(CONF_ENABLED_ROUTE_KEYS, [])
             if isinstance(selected_route_keys, str):
@@ -368,7 +399,10 @@ class NtpcRubbishOptionsFlow(config_entries.OptionsFlow):
             else:
                 return self.async_create_entry(
                     title="",
-                    data={CONF_ENABLED_ROUTE_KEYS: selected_route_keys},
+                    data={
+                        CONF_ENABLED_ROUTE_KEYS: selected_route_keys,
+                        CONF_UPDATE_INTERVAL: int(user_input[CONF_UPDATE_INTERVAL]),
+                    },
                 )
 
         route_options = [
@@ -388,7 +422,10 @@ class NtpcRubbishOptionsFlow(config_entries.OptionsFlow):
                             multiple=True,
                             mode=SelectSelectorMode.LIST,
                         )
-                    )
+                    ),
+                    vol.Required(CONF_UPDATE_INTERVAL, default=update_interval): NumberSelector(
+                        NumberSelectorConfig(min=30, step=1, mode=NumberSelectorMode.BOX)
+                    ),
                 }
             ),
             errors=errors,

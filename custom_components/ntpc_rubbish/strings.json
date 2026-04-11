@@ -24,6 +24,15 @@
         "data_description": {
           "enabled_route_keys": "Choose which routes at this collection point should remain active."
         }
+      },
+      "interval": {
+        "title": "Set update interval",
+        "data": {
+          "update_interval": "Update interval (seconds)"
+        },
+        "data_description": {
+          "update_interval": "How often to poll for new truck location data. Minimum 30 seconds."
+        }
       }
     },
     "error": {
@@ -38,12 +47,15 @@
   "options": {
     "step": {
       "init": {
-        "title": "Update enabled routes",
+        "title": "Update settings",
+        "description": "Adjust which routes are active and how often the integration polls for live truck data.",
         "data": {
-          "enabled_route_keys": "Enabled routes"
+          "enabled_route_keys": "Enabled routes",
+          "update_interval": "Update interval (seconds)"
         },
         "data_description": {
-          "enabled_route_keys": "Choose which routes at this collection point should remain active."
+          "enabled_route_keys": "Choose which routes at this collection point should remain active.",
+          "update_interval": "How often to poll for new truck location data. Minimum 30 seconds."
         }
       }
     }

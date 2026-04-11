@@ -14,6 +14,7 @@ CONF_DISTRICT = "district"
 CONF_SCHEDULED_TIME = "scheduled_time"  # comma-separated times for device model display
 CONF_LATITUDE = "latitude"
 CONF_LONGITUDE = "longitude"
+CONF_UPDATE_INTERVAL = "update_interval"
 
 DEFAULT_SCAN_INTERVAL = 30   # seconds
 ROUTE_CACHE_TTL = 86400  # 24 hours
