@@ -30,6 +30,12 @@ _ROUTE_CACHE_KEY = f"{DOMAIN}_route_cache"   # dict: "{lineid}_{rank}" → {data
 _OFFICIAL_AROUND_POINTS_CACHE_KEY = f"{DOMAIN}_official_around_points_cache"
 _OFFICIAL_LINE_ARRIVAL_CACHE_KEY = f"{DOMAIN}_official_line_arrival_cache"
 _OFFICIAL_LINE_ARRIVAL_CACHE_TTL = 30  # seconds – official site data is now the primary live source
+# When the live API hiccups (cache miss + fresh fetch fails), keep showing the
+# last successful live snapshot for up to this long before clearing the values
+# back to "non-collection-time" defaults. Picked to be ~10× the live cache TTL:
+# long enough to ride out routine upstream glitches, short enough that "the
+# truck is 1.2 km away" stops claiming so when the data is genuinely old.
+_LIVE_SNAPSHOT_MAX_STALENESS_SECONDS = 300  # 5 minutes
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,6 +72,33 @@ class CollectionPointData:
     data_staleness_seconds: int | None
     truck_departed: bool
     truck_departed_at: datetime | None
+
+
+@dataclass
+class _LiveSnapshot:
+    """Cached snapshot of live-API-derived values.
+
+    Kept across polls so a transient upstream blip doesn't blank the truck
+    location / status / ETA back to defaults; instead we keep showing the last
+    successful values until the snapshot ages past
+    ``_LIVE_SNAPSHOT_MAX_STALENESS_SECONDS``. Reverting to "非收運時間" /
+    ``None`` on a single failed poll would be misleading — 30 seconds earlier
+    the truck was clearly active 1 km away.
+    """
+
+    captured_at: datetime
+    nearest_truck_distance: float | None
+    nearest_truck_location: str | None
+    nearest_truck_lat: float | None
+    nearest_truck_lon: float | None
+    last_vehicle_update: datetime | None
+    official_arrival_time: datetime | None
+    collection_status: str | None
+    collection_status_code: str | None
+    car_no: str | None
+    truck_departed: bool
+    truck_departed_at: datetime | None
+    display_route_items: list[dict[str, Any]]
 
 
 def _haversine_distance(
@@ -528,6 +561,7 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
         self._route_last_updated: datetime | None = None
         self._last_vehicle_update: datetime | None = None
         self._last_update: datetime | None = None
+        self._last_live_snapshot: _LiveSnapshot | None = None
 
         update_interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_SCAN_INTERVAL)
         super().__init__(
@@ -663,6 +697,11 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
         collection_status: str | None = "非收運時間"
         collection_status_code: str | None = None
         car_no: str | None = None
+        # Hoisted out of the "if payload" branch so the truck-departure resolver
+        # below can read them whether the values came from a fresh fetch or the
+        # stale-snapshot fallback.
+        live_truck_departed: bool = False
+        live_truck_departed_at: datetime | None = None
         display_route_items = route_items
         line_ids = sorted({str(item.get("lineid", "")) for item in route_items})
         official_eta_payload: dict[str, Any] | None = None
@@ -709,8 +748,52 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
                 collection_status = official_live["collection_status"]
                 collection_status_code = official_live["collection_status_code"]
                 car_no = official_live["car_no"]
+                live_truck_departed = official_live["truck_departed"]
+                live_truck_departed_at = official_live["truck_departed_at"]
                 if last_vehicle_update is not None:
                     self._last_vehicle_update = last_vehicle_update
+
+                self._last_live_snapshot = _LiveSnapshot(
+                    captured_at=now,
+                    nearest_truck_distance=nearest_distance,
+                    nearest_truck_location=nearest_location,
+                    nearest_truck_lat=nearest_truck_lat,
+                    nearest_truck_lon=nearest_truck_lon,
+                    last_vehicle_update=last_vehicle_update,
+                    official_arrival_time=official_arrival_time,
+                    collection_status=collection_status,
+                    collection_status_code=collection_status_code,
+                    car_no=car_no,
+                    truck_departed=live_truck_departed,
+                    truck_departed_at=live_truck_departed_at,
+                    display_route_items=display_route_items,
+                )
+            elif self._last_live_snapshot is not None and (
+                (now - self._last_live_snapshot.captured_at).total_seconds()
+                < _LIVE_SNAPSHOT_MAX_STALENESS_SECONDS
+            ):
+                # Fresh fetch failed (both around_points and line_arrivals) and
+                # the local cache is also stale. Show the last successful values
+                # rather than reverting to "非收運時間" + None: 30 s earlier the
+                # truck was clearly active, and ``data_staleness_seconds`` will
+                # surface the age so the user can tell the data is not fresh.
+                snap = self._last_live_snapshot
+                age = int((now - snap.captured_at).total_seconds())
+                _LOGGER.debug(
+                    "Live fetch failed; reusing snapshot (%d s old)", age
+                )
+                nearest_distance = snap.nearest_truck_distance
+                nearest_location = snap.nearest_truck_location
+                nearest_truck_lat = snap.nearest_truck_lat
+                nearest_truck_lon = snap.nearest_truck_lon
+                last_vehicle_update = snap.last_vehicle_update
+                official_arrival_time = snap.official_arrival_time
+                collection_status = snap.collection_status
+                collection_status_code = snap.collection_status_code
+                car_no = snap.car_no
+                live_truck_departed = snap.truck_departed
+                live_truck_departed_at = snap.truck_departed_at
+                display_route_items = snap.display_route_items
 
         if line_ids and display_route_items is route_items:
             display_route_items = _select_live_route_items(route_items, now)
@@ -723,12 +806,8 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
         effective_last_vehicle_update = last_vehicle_update or self._last_vehicle_update
 
         effective_truck_departed, effective_truck_departed_at = _resolve_truck_departure_state(
-            truck_departed=(
-                official_live["truck_departed"] if official_eta_payload is not None else False
-            ),
-            truck_departed_at=(
-                official_live["truck_departed_at"] if official_eta_payload is not None else None
-            ),
+            truck_departed=live_truck_departed,
+            truck_departed_at=live_truck_departed_at,
             scheduled_collection_time=scheduled_collection_time,
             collection_status=collection_status,
             now=now,
