@@ -73,6 +73,9 @@
       },
       "eta_minutes": {
         "name": "Estimated arrival time"
+      },
+      "last_update": {
+        "name": "Last updated"
       }
     },
     "binary_sensor": {

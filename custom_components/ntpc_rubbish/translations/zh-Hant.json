@@ -73,6 +73,9 @@
       },
       "eta_minutes": {
         "name": "預估抵達時間"
+      },
+      "last_update": {
+        "name": "最後更新時間"
       }
     },
     "binary_sensor": {

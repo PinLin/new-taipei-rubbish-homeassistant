@@ -1,10 +1,16 @@
 """Sensor entities for NTPC Rubbish integration."""
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -41,6 +47,7 @@ async def async_setup_entry(
             CollectionStatusSensor(coordinator, entry, device_id, point_name, scheduled_times),
             EtaMinutesSensor(coordinator, entry, device_id, point_name, scheduled_times),
             NearestTruckDistanceSensor(coordinator, entry, device_id, point_name, scheduled_times),
+            LastUpdateSensor(coordinator, entry, device_id, point_name, scheduled_times),
         ]
     )
 
@@ -121,6 +128,8 @@ class NearestTruckDistanceSensor(_NtpcRubbishBaseSensor):
     """Shows the straight-line distance to the nearest truck on the same route."""
 
     _attr_native_unit_of_measurement = "m"
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:truck-outline"
 
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
@@ -211,3 +220,18 @@ class EtaMinutesSensor(_NtpcRubbishBaseSensor):
                 else None
             )
         return attrs
+
+
+class LastUpdateSensor(_NtpcRubbishBaseSensor):
+    """Diagnostic timestamp: when the coordinator last completed a successful refresh."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:clock-outline"
+
+    def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
+        super().__init__(coordinator, entry, device_id, point_name, scheduled_times, "last_update")
+
+    @property
+    def native_value(self) -> datetime | None:
+        return self.coordinator.last_update

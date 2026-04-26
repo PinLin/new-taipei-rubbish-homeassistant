@@ -315,7 +315,7 @@ class NtpcRubbishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> NtpcRubbishOptionsFlow:
-        return NtpcRubbishOptionsFlow(config_entry)
+        return NtpcRubbishOptionsFlow()
 
     # ------------------------------------------------------------------ #
     # Helpers
@@ -372,23 +372,24 @@ class NtpcRubbishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class NtpcRubbishOptionsFlow(config_entries.OptionsFlow):
-    """Handle options for an existing NTPC Rubbish entry."""
+    """Handle options for an existing NTPC Rubbish entry.
 
-    def __init__(self, entry: config_entries.ConfigEntry) -> None:
-        self._entry = entry
+    HA 2024.11+ injects ``self.config_entry`` automatically, so no custom
+    ``__init__`` is needed.
+    """
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.FlowResult:
         errors: dict[str, str] = {}
-        routes: list[dict[str, Any]] = self._entry.data.get(CONF_ROUTES, [])
+        routes: list[dict[str, Any]] = self.config_entry.data.get(CONF_ROUTES, [])
         default_route_keys = (
-            self._entry.options.get(CONF_ENABLED_ROUTE_KEYS)
-            or self._entry.data.get(CONF_ENABLED_ROUTE_KEYS)
+            self.config_entry.options.get(CONF_ENABLED_ROUTE_KEYS)
+            or self.config_entry.data.get(CONF_ENABLED_ROUTE_KEYS)
             or [route_key(route) for route in routes]
         )
 
-        update_interval = self._entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        update_interval = self.config_entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
         if user_input is not None:
             selected_route_keys = user_input.get(CONF_ENABLED_ROUTE_KEYS, [])
