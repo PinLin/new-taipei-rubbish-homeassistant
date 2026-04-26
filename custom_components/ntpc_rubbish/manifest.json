@@ -3,6 +3,7 @@
   "name": "New Taipei Rubbish",
   "version": "0.1.4",
   "documentation": "https://github.com/PinLin/new-taipei-rubbish-homeassistant",
+  "issue_tracker": "https://github.com/PinLin/new-taipei-rubbish-homeassistant/issues",
   "requirements": [],
   "dependencies": [],
   "codeowners": ["@PinLin"],
