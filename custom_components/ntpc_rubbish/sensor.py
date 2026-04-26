@@ -26,7 +26,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: NtpcRubbishCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: NtpcRubbishCoordinator = entry.runtime_data
     point_name: str = entry.data[CONF_POINT_NAME]
     lat: float = entry.data.get(CONF_LATITUDE, 0)
     lon: float = entry.data.get(CONF_LONGITUDE, 0)

@@ -1,10 +1,11 @@
 update:
-  name: 手動更新
-  description: 手動觸發更新垃圾車位置資料。
+  name: Refresh truck data
+  description: Manually refresh garbage truck location data.
   fields:
     entry_ids:
-      name: 設定項目 ID
-      description: 指定要更新的設定項目 ID 清單，留空則更新全部。
+      name: Entry IDs
+      description: Config entry IDs to refresh. Leave empty to refresh all entries.
+      required: false
       example: ["abc123def456"]
       selector:
         object:

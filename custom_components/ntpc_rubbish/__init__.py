@@ -1,8 +1,11 @@
 """New Taipei City Garbage Truck integration."""
 from __future__ import annotations
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import NtpcRubbishApiClient
@@ -18,9 +21,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     client = NtpcRubbishApiClient(session)
     coordinator = NtpcRubbishCoordinator(hass, entry, client)
 
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception as err:
+        raise ConfigEntryNotReady(f"First refresh failed: {err}") from err
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -32,20 +38,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         async def _handle_update(call: ServiceCall) -> None:
             entry_ids: list[str] = call.data.get("entry_ids", [])
-            all_coordinators: dict[str, NtpcRubbishCoordinator] = hass.data.get(
-                DOMAIN, {}
-            )
-            targets = (
-                {eid: all_coordinators[eid] for eid in entry_ids if eid in all_coordinators}
-                if entry_ids
-                else all_coordinators
-            )
-            # Refresh against a snapshot so concurrent entry adds/removals do not
-            # mutate the dictionary during iteration.
-            for coord in list(targets.values()):
-                await coord.async_request_refresh()
+            for cfg in hass.config_entries.async_entries(DOMAIN):
+                if entry_ids and cfg.entry_id not in entry_ids:
+                    continue
+                if not hasattr(cfg, "runtime_data"):
+                    continue
+                await cfg.runtime_data.async_request_refresh()
 
-        hass.services.async_register(DOMAIN, "update", _handle_update)
+        hass.services.async_register(
+            DOMAIN,
+            "update",
+            _handle_update,
+            schema=vol.Schema(
+                {vol.Optional("entry_ids", default=[]): vol.All(cv.ensure_list, [cv.string])}
+            ),
+        )
 
     return True
 
@@ -54,9 +61,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
-        if not hass.data[DOMAIN]:
-            hass.data.pop(DOMAIN)
+        remaining = [
+            e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id
+        ]
+        if not remaining:
             hass.services.async_remove(DOMAIN, "update")
     return unload_ok
 
