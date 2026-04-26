@@ -14,6 +14,8 @@ from homeassistant.util import dt as dt_util
 
 from .api import NtpcRubbishApiClient
 from .const import (
+    CONF_DISTRICT,
+    CONF_POINT_NAME,
     CONF_ROUTES,
     CONF_UPDATE_INTERVAL,
     DAY_FIELDS,
@@ -739,7 +741,6 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
             else None
         )
 
-        from .const import CONF_POINT_NAME, CONF_DISTRICT
         scheduled_time_str = format_scheduled_times(self._get_routes()) or route.get("time", "")
         display_route = display_route_items[0] if display_route_items else route
         first_lineid = display_route.get("lineid", self._get_routes()[0]["lineid"])

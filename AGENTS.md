@@ -7,12 +7,11 @@ This repository contains a Home Assistant custom integration for New Taipei City
 Run lightweight checks from the repo root:
 
 ```bash
-python -m compileall custom_components/ntpc_rubbish
-python -m py_compile custom_components/ntpc_rubbish/*.py tests/*.py
+python -m compileall custom_components/ntpc_rubbish tests
 python -m pytest tests/ -v
 ```
 
-`compileall` and `py_compile` catch syntax issues quickly. `pytest` runs the checked-in unit tests. For manual verification, copy `custom_components/ntpc_rubbish/` into Home Assistant’s `config/custom_components/`, restart HA, then add the integration from Settings > Devices & Services.
+`compileall` catches syntax issues quickly across the integration and tests. `pytest` runs the checked-in unit tests. For manual verification, copy `custom_components/ntpc_rubbish/` into Home Assistant’s `config/custom_components/`, restart HA, then add the integration from Settings > Devices & Services.
 
 ## Coding Style & Naming Conventions
 Use 4-space indentation, module docstrings, and `snake_case` for functions, variables, config keys, and helpers. Keep constants uppercase in `const.py`. Follow Home Assistant async conventions such as `async_setup_entry` and `DataUpdateCoordinator`. Prefer stable ID-based entity naming; entity IDs should stay coordinate-based (for example `sensor.ntpc_rubbish_25_07987_121_48115_eta_minutes`) rather than name-derived pinyin.

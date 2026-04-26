@@ -15,12 +15,13 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# data.ntpc.gov.tw uses a certificate that is missing the Subject Key Identifier
-# extension, which Python 3.13+ rejects by default. We relax verification only
-# for this trusted government host.
-_SSL_CONTEXT = ssl.create_default_context()
-_SSL_CONTEXT.check_hostname = False
-_SSL_CONTEXT.verify_mode = ssl.CERT_NONE
+# Both NTPC hosts (data.ntpc.gov.tw and crd-rubbish.epd.ntpc.gov.tw) serve
+# certificates missing the Subject Key Identifier extension, which Python 3.13+
+# rejects by default. Verification is relaxed only for these trusted government
+# hosts.
+_NTPC_SSL_CONTEXT = ssl.create_default_context()
+_NTPC_SSL_CONTEXT.check_hostname = False
+_NTPC_SSL_CONTEXT.verify_mode = ssl.CERT_NONE
 
 _OFFICIAL_SITE_HEADERS = {
     "Referer": "https://crd-rubbish.epd.ntpc.gov.tw/dispPageBox/Ntpcepd/NtpMP.aspx?ddsPageID=MAP",
@@ -50,7 +51,7 @@ class NtpcRubbishApiClient:
                     url,
                     params={"page": page, "size": size},
                     timeout=aiohttp.ClientTimeout(total=30),
-                    ssl=_SSL_CONTEXT,
+                    ssl=_NTPC_SSL_CONTEXT,
                 ) as resp:
                     resp.raise_for_status()
                     data: list[dict[str, Any]] = await resp.json()
@@ -63,8 +64,8 @@ class NtpcRubbishApiClient:
             except aiohttp.ClientError as err:
                 _LOGGER.error("HTTP error fetching %s page %d: %s", url, page, err)
                 raise
-            except Exception as err:
-                _LOGGER.error("Unexpected error fetching %s page %d: %s", url, page, err)
+            except Exception:
+                _LOGGER.exception("Unexpected error fetching %s page %d", url, page)
                 raise
         return results
 
@@ -83,7 +84,7 @@ class NtpcRubbishApiClient:
                     NTPC_ROUTE_API,
                     params={"page": page, "size": 1000},
                     timeout=aiohttp.ClientTimeout(total=30),
-                    ssl=_SSL_CONTEXT,
+                    ssl=_NTPC_SSL_CONTEXT,
                 ) as resp:
                     resp.raise_for_status()
                     data: list[dict[str, Any]] = await resp.json()
@@ -95,9 +96,9 @@ class NtpcRubbishApiClient:
                     if len(data) < 1000:
                         return None
                     page += 1
-            except Exception as err:
-                _LOGGER.error(
-                    "Error fetching route point lineid=%s rank=%s: %s", lineid, rank, err
+            except Exception:
+                _LOGGER.exception(
+                    "Error fetching route point lineid=%s rank=%s", lineid, rank
                 )
                 raise
 
@@ -110,15 +111,15 @@ class NtpcRubbishApiClient:
                 data=payload,
                 headers=_OFFICIAL_SITE_HEADERS,
                 timeout=aiohttp.ClientTimeout(total=30),
-                ssl=_SSL_CONTEXT,
+                ssl=_NTPC_SSL_CONTEXT,
             ) as resp:
                 resp.raise_for_status()
                 return await resp.json()
         except aiohttp.ClientError as err:
             _LOGGER.error("HTTP error fetching official line arrivals: %s", err)
             raise
-        except Exception as err:
-            _LOGGER.error("Unexpected error fetching official line arrivals: %s", err)
+        except Exception:
+            _LOGGER.exception("Unexpected error fetching official line arrivals")
             raise
 
     async def get_official_around_points(
@@ -144,13 +145,13 @@ class NtpcRubbishApiClient:
                 data=payload,
                 headers=_OFFICIAL_SITE_HEADERS,
                 timeout=aiohttp.ClientTimeout(total=30),
-                ssl=_SSL_CONTEXT,
+                ssl=_NTPC_SSL_CONTEXT,
             ) as resp:
                 resp.raise_for_status()
                 return await resp.json()
         except aiohttp.ClientError as err:
             _LOGGER.error("HTTP error fetching official around points: %s", err)
             raise
-        except Exception as err:
-            _LOGGER.error("Unexpected error fetching official around points: %s", err)
+        except Exception:
+            _LOGGER.exception("Unexpected error fetching official around points")
             raise
