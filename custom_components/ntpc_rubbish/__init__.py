@@ -30,9 +30,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Reload entry when options change so coordinator picks up new settings
-    entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
-
     # Register manual update service once
     if not hass.services.has_service(DOMAIN, "update"):
 
@@ -67,8 +64,3 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not remaining:
             hass.services.async_remove(DOMAIN, "update")
     return unload_ok
-
-
-async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload entry when options are updated."""
-    await hass.config_entries.async_reload(entry.entry_id)

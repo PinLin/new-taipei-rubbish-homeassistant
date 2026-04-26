@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .api import NtpcRubbishApiClient
+from .api import NtpcRubbishApiClient, NtpcRubbishApiError
 from .const import (
     CONF_DISTRICT,
     CONF_POINT_NAME,
@@ -637,8 +637,8 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
             route_items = await self._ensure_route_data_list()
         except UpdateFailed:
             raise
-        except Exception as err:
-            raise UpdateFailed(f"Error communicating with NTPC API: {err}") from err
+        except NtpcRubbishApiError as err:
+            raise UpdateFailed(f"NTPC API error: {err}") from err
 
         route = route_items[0]
         now = dt_util.now()

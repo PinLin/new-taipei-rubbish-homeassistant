@@ -1,7 +1,6 @@
 """API client for New Taipei City garbage truck data."""
 from __future__ import annotations
 
-import logging
 import ssl
 from typing import Any
 
@@ -12,8 +11,6 @@ from .const import (
     NTPC_OFFICIAL_ARRIVAL_API,
     NTPC_ROUTE_API,
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 # Both NTPC hosts (data.ntpc.gov.tw and crd-rubbish.epd.ntpc.gov.tw) serve
 # certificates missing the Subject Key Identifier extension, which Python 3.13+
@@ -31,6 +28,10 @@ _OFFICIAL_SITE_HEADERS = {
         "Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
     ),
 }
+
+
+class NtpcRubbishApiError(Exception):
+    """Raised when an NTPC API call fails (network or unparseable response)."""
 
 
 class NtpcRubbishApiClient:
@@ -62,11 +63,9 @@ class NtpcRubbishApiClient:
                         break
                     page += 1
             except aiohttp.ClientError as err:
-                _LOGGER.error("HTTP error fetching %s page %d: %s", url, page, err)
-                raise
-            except Exception:
-                _LOGGER.exception("Unexpected error fetching %s page %d", url, page)
-                raise
+                raise NtpcRubbishApiError(
+                    f"network error fetching {url} page {page}: {err}"
+                ) from err
         return results
 
     async def get_all_routes(self) -> list[dict[str, Any]]:
@@ -96,11 +95,10 @@ class NtpcRubbishApiClient:
                     if len(data) < 1000:
                         return None
                     page += 1
-            except Exception:
-                _LOGGER.exception(
-                    "Error fetching route point lineid=%s rank=%s", lineid, rank
-                )
-                raise
+            except aiohttp.ClientError as err:
+                raise NtpcRubbishApiError(
+                    f"network error fetching route point lineid={lineid} rank={rank}: {err}"
+                ) from err
 
     async def get_official_line_arrivals(self, line_ids: list[str]) -> dict[str, Any]:
         """Fetch official arrival data for one or more line IDs."""
@@ -116,11 +114,9 @@ class NtpcRubbishApiClient:
                 resp.raise_for_status()
                 return await resp.json()
         except aiohttp.ClientError as err:
-            _LOGGER.error("HTTP error fetching official line arrivals: %s", err)
-            raise
-        except Exception:
-            _LOGGER.exception("Unexpected error fetching official line arrivals")
-            raise
+            raise NtpcRubbishApiError(
+                f"network error fetching official line arrivals: {err}"
+            ) from err
 
     async def get_official_around_points(
         self,
@@ -150,8 +146,6 @@ class NtpcRubbishApiClient:
                 resp.raise_for_status()
                 return await resp.json()
         except aiohttp.ClientError as err:
-            _LOGGER.error("HTTP error fetching official around points: %s", err)
-            raise
-        except Exception:
-            _LOGGER.exception("Unexpected error fetching official around points")
-            raise
+            raise NtpcRubbishApiError(
+                f"network error fetching official around points: {err}"
+            ) from err

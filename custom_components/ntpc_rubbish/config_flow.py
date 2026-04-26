@@ -371,11 +371,13 @@ class NtpcRubbishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-class NtpcRubbishOptionsFlow(config_entries.OptionsFlow):
+class NtpcRubbishOptionsFlow(config_entries.OptionsFlowWithReload):
     """Handle options for an existing NTPC Rubbish entry.
 
     HA 2024.11+ injects ``self.config_entry`` automatically, so no custom
-    ``__init__`` is needed.
+    ``__init__`` is needed. ``OptionsFlowWithReload`` (HA 2025.8+) reloads
+    the entry automatically when options change, so the integration doesn't
+    need to register an update listener.
     """
 
     async def async_step_init(
