@@ -2,5 +2,5 @@
   "name": "新北市垃圾車",
   "render_readme": true,
   "hide_default_branch": true,
-  "homeassistant": "2024.2"
+  "homeassistant": "2024.11.0"
 }
