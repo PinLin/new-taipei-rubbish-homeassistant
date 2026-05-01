@@ -379,13 +379,20 @@ def _scheduled_collection_time_for_routes(
 ) -> datetime | None:
     """Return the displayed scheduled collection datetime for the selected route set."""
     candidates: list[datetime] = []
+    live_line_ids = {
+        str(line.get("LineID", ""))
+        for line in (eta_payload or {}).get("Line", [])
+    }
 
     for route_item in route_items:
+        line_id = str(route_item.get("lineid", ""))
         if now.weekday() in _schedule_weekdays(route_item, "garbage"):
             scheduled_today = _scheduled_collection_dt_for_date(
                 now.date(), route_item.get("time", "")
             )
-            if scheduled_today is not None:
+            if scheduled_today is not None and (
+                scheduled_today > now or line_id in live_line_ids
+            ):
                 candidates.append(scheduled_today)
                 continue
 

@@ -230,9 +230,9 @@ def test_extract_official_live_data_uses_location_and_timestamp() -> None:
                 "ArrivalRank": 6,
                 "Diff": -1,
                 "BarCode": "000014",
-                "Location": "新北市三重區三和路四段221號",
-                "LocationLat": 25.0799,
-                "LocationLon": 121.481603333333,
+                "Location": "範例市範例區測試路100號",
+                "LocationLat": 25.0001,
+                "LocationLon": 121.0001,
                 "Point": [
                     {"PointRank": 7, "PointTime": "17:10", "Arrival": ""},
                 ],
@@ -243,16 +243,16 @@ def test_extract_official_live_data_uses_location_and_timestamp() -> None:
     actual = _extract_official_live_data(
         payload,
         [{"lineid": "241009", "rank": "7"}],
-        point_latitude=25.080758,
-        point_longitude=121.481782,
+        point_latitude=25.0008,
+        point_longitude=121.0002,
         now=now,
     )
 
     assert actual["nearest_truck_distance"] is not None
     assert actual["nearest_truck_distance"] < 200
-    assert actual["nearest_truck_location"] == "新北市三重區三和路四段221號"
-    assert actual["nearest_truck_lat"] == 25.0799
-    assert actual["nearest_truck_lon"] == 121.481603333333
+    assert actual["nearest_truck_location"] == "範例市範例區測試路100號"
+    assert actual["nearest_truck_lat"] == 25.0001
+    assert actual["nearest_truck_lon"] == 121.0001
     assert actual["last_vehicle_update"] is not None
     assert actual["last_vehicle_update"].strftime("%H:%M:%S") == "17:08:38"
     assert actual["estimated_arrival_time"] is not None
@@ -274,9 +274,9 @@ def test_extract_official_live_data_preserves_zero_diff_for_future_stop() -> Non
                 "ArrivalRank": 3,
                 "Diff": 0,
                 "BarCode": "241009",
-                "Location": "新北市三重區三和路四段203巷48號",
-                "LocationLat": 25.0796883333333,
-                "LocationLon": 121.482905,
+                "Location": "範例市範例區測試路200號",
+                "LocationLat": 25.0003,
+                "LocationLon": 121.0003,
                 "Point": [
                     {"PointRank": 7, "PointTime": "17:10", "Arrival": ""},
                 ],
@@ -287,8 +287,8 @@ def test_extract_official_live_data_preserves_zero_diff_for_future_stop() -> Non
     actual = _extract_official_live_data(
         payload,
         [{"lineid": "241009", "rank": "7"}],
-        point_latitude=25.07987,
-        point_longitude=121.481147,
+        point_latitude=25.0004,
+        point_longitude=121.0004,
         now=now,
     )
 
@@ -321,8 +321,8 @@ def test_extract_official_live_data_marks_departed_when_arrival_exists() -> None
     actual = _extract_official_live_data(
         payload,
         [{"lineid": "241009", "rank": "7"}],
-        point_latitude=25.07987,
-        point_longitude=121.481147,
+        point_latitude=25.0004,
+        point_longitude=121.0004,
         now=now,
     )
 
@@ -354,8 +354,8 @@ def test_extract_official_live_data_marks_departed_when_arrival_rank_has_passed(
     actual = _extract_official_live_data(
         payload,
         [{"lineid": "241009", "rank": "7"}],
-        point_latitude=25.07987,
-        point_longitude=121.481147,
+        point_latitude=25.0004,
+        point_longitude=121.0004,
         now=now,
     )
 
@@ -392,8 +392,8 @@ def test_extract_official_live_data_supports_get_around_points_payload() -> None
     actual = _extract_official_live_data(
         payload,
         [{"lineid": "220005", "rank": "51"}],
-        point_latitude=24.99144709,
-        point_longitude=121.4607099,
+        point_latitude=25.0005,
+        point_longitude=121.0005,
         now=now,
     )
 
@@ -498,8 +498,8 @@ def test_extract_official_live_data_defaults_to_non_collection_without_line() ->
     actual = _extract_official_live_data(
         {"TimeStamp": "20260403175211", "Line": []},
         [{"lineid": "220057", "rank": "51"}],
-        point_latitude=25.013,
-        point_longitude=121.46,
+        point_latitude=25.0006,
+        point_longitude=121.0006,
         now=dt_util.as_local(
             datetime(2026, 4, 3, 19, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)
         ),
