@@ -114,9 +114,9 @@
       "name": "Refresh truck data",
       "description": "Manually refresh garbage truck location data.",
       "fields": {
-        "entry_ids": {
-          "name": "Entry IDs",
-          "description": "Config entry IDs to refresh. Leave empty to refresh all entries."
+        "point_ids": {
+          "name": "Point IDs",
+          "description": "Collection point IDs to refresh. Leave empty to refresh all points."
         }
       }
     }

@@ -94,6 +94,7 @@ class _NtpcRubbishBaseSensor(
         if d is None:
             return {}
         return {
+            "point_id": point_device_id(d.latitude, d.longitude),
             "district": d.district,
             "route_line_name": d.route_line_name,
             "latitude": d.latitude,

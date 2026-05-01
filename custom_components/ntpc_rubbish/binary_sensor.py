@@ -5,11 +5,20 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_LATITUDE, CONF_LONGITUDE, CONF_POINT_NAME, CONF_SCHEDULED_TIME, DOMAIN
+from .const import (
+    CONF_ENABLED_ROUTE_KEYS,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    CONF_POINT_NAME,
+    CONF_ROUTES,
+    CONF_SCHEDULED_TIME,
+    DOMAIN,
+)
 from .coordinator import CollectionPointData, NtpcRubbishCoordinator
 from .entity import (
     build_device_info,
@@ -18,6 +27,7 @@ from .entity import (
     point_device_id,
     point_entity_id,
     point_object_id,
+    route_key,
 )
 
 
@@ -34,6 +44,7 @@ async def async_setup_entry(
         CONF_SCHEDULED_TIME, ""
     )
     device_id = point_device_id(lat, lon)
+    routes = entry.data.get(CONF_ROUTES, [])
 
     async_add_entities(
         [
@@ -41,6 +52,17 @@ async def async_setup_entry(
             RecyclingTodaySensor(coordinator, entry, device_id, point_name, scheduled_times),
             FoodScrapsTodaySensor(coordinator, entry, device_id, point_name, scheduled_times),
             TruckDepartedSensor(coordinator, entry, device_id, point_name, scheduled_times),
+            *[
+                RouteEnabledSensor(
+                    coordinator,
+                    entry,
+                    device_id,
+                    point_name,
+                    scheduled_times,
+                    route,
+                )
+                for route in routes
+            ],
         ]
     )
 
@@ -87,6 +109,7 @@ class _NtpcRubbishBaseBinarySensor(
         if d is None:
             return {}
         return {
+            "point_id": point_device_id(d.latitude, d.longitude),
             "latitude": d.latitude,
             "longitude": d.longitude,
         }
@@ -162,3 +185,74 @@ class TruckDepartedSensor(_NtpcRubbishBaseBinarySensor):
             else None
         )
         return attrs
+
+
+class RouteEnabledSensor(
+    CoordinatorEntity[NtpcRubbishCoordinator], BinarySensorEntity
+):
+    """Diagnostic entity showing whether a configured route is enabled."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:routes"
+
+    def __init__(
+        self,
+        coordinator: NtpcRubbishCoordinator,
+        entry: ConfigEntry,
+        device_id: str,
+        point_name: str,
+        scheduled_times: str,
+        route: dict[str, str],
+    ) -> None:
+        super().__init__(coordinator)
+        self._entry = entry
+        self._device_id = device_id
+        self._route = route
+        self._route_key = route_key(route)
+        route_label = "｜".join(
+            part
+            for part in (
+                route.get("scheduled_time") or route.get("time") or "",
+                route.get("linename", ""),
+                f"#{route['rank']}" if route.get("rank") else "",
+                route.get("lineid", ""),
+            )
+            if part
+        )
+        self._attr_name = route_label or self._route_key
+        self._attr_unique_id = f"{DOMAIN}_{device_id}_route_{self._route_key}_enabled"
+        self._attr_suggested_object_id = point_object_id(
+            device_id, f"route_{self._route_key}_enabled"
+        )
+        self.entity_id = point_entity_id(
+            "binary_sensor", device_id, f"route_{self._route_key}_enabled"
+        )
+        self._attr_device_info = build_device_info(
+            entry, device_id, point_name, scheduled_times
+        )
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def is_on(self) -> bool:
+        enabled_route_keys = (
+            self._entry.options.get(CONF_ENABLED_ROUTE_KEYS)
+            or self._entry.data.get(CONF_ENABLED_ROUTE_KEYS)
+            or []
+        )
+        return not enabled_route_keys or self._route_key in enabled_route_keys
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str | bool | None]:
+        return {
+            "point_id": self._device_id,
+            "route_key": self._route_key,
+            "scheduled_time": self._route.get("scheduled_time")
+            or self._route.get("time"),
+            "line_name": self._route.get("linename"),
+            "line_id": self._route.get("lineid"),
+            "rank": self._route.get("rank"),
+        }

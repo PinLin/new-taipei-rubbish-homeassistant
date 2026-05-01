@@ -8,6 +8,9 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
+from .const import CONF_ENABLED_ROUTE_KEYS, CONF_ROUTES
+from .entity import route_key
+
 # A user's collection point latitude / longitude is effectively their home
 # address, so we redact it from diagnostics shared with third parties.
 REDACT_KEYS = {
@@ -40,6 +43,12 @@ async def async_get_config_entry_diagnostics(
     coordinator = entry.runtime_data
     raw_data = coordinator.data if coordinator is not None else None
     last_update = coordinator.last_update if coordinator is not None else None
+    routes = entry.data.get(CONF_ROUTES, [])
+    enabled_route_keys = set(
+        entry.options.get(CONF_ENABLED_ROUTE_KEYS)
+        or entry.data.get(CONF_ENABLED_ROUTE_KEYS)
+        or []
+    )
 
     return {
         "entry": async_redact_data(entry.as_dict(), REDACT_KEYS),
@@ -49,5 +58,16 @@ async def async_get_config_entry_diagnostics(
                 coordinator.last_update_success if coordinator is not None else None
             ),
         },
+        "routes": [
+            {
+                "route_key": route_key(route),
+                "enabled": not enabled_route_keys or route_key(route) in enabled_route_keys,
+                "scheduled_time": route.get("scheduled_time") or route.get("time"),
+                "line_name": route.get("linename"),
+                "line_id": route.get("lineid"),
+                "rank": route.get("rank"),
+            }
+            for route in routes
+        ],
         "data": async_redact_data(_serialize(raw_data), REDACT_KEYS),
     }

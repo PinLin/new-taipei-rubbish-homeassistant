@@ -11,10 +11,11 @@ CONF_ROUTES = "routes"          # all routes at the selected physical collection
 CONF_ENABLED_ROUTE_KEYS = "enabled_route_keys"
 CONF_POINT_NAME = "point_name"
 CONF_DISTRICT = "district"
-CONF_SCHEDULED_TIME = "scheduled_time"  # comma-separated times for device model display
+CONF_SCHEDULED_TIME = "scheduled_time"  # comma-separated times for display
 CONF_LATITUDE = "latitude"
 CONF_LONGITUDE = "longitude"
 CONF_UPDATE_INTERVAL = "update_interval"
+SERVICE_UPDATE = "update"
 
 DEFAULT_SCAN_INTERVAL = 30   # seconds
 ROUTE_CACHE_TTL = 86400  # 24 hours

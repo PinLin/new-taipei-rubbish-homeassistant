@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import CONF_ENABLED_ROUTE_KEYS, CONF_ROUTES, DOMAIN
 
@@ -54,28 +55,11 @@ def build_device_info(
     device_id: str,
     point_name: str,
     scheduled_times: str,
-) -> dict[str, object]:
+) -> DeviceInfo:
     """Build Home Assistant device info with useful diagnostic identifiers."""
-    routes = get_active_routes(entry)
-    route_summaries = "、".join(
-        "｜".join(
-            part
-            for part in (
-                route.get("scheduled_time", ""),
-                route.get("linename", ""),
-                f"#{route['rank']}" if route.get("rank") else "",
-                route.get("lineid", ""),
-            )
-            if part
-        )
-        for route in routes
+    return DeviceInfo(
+        identifiers={(DOMAIN, device_id)},
+        name=point_name,
+        manufacturer="新北市政府環境保護局",
+        model=device_id,
     )
-    current_times = scheduled_times or format_scheduled_times(routes)
-    model = route_summaries or current_times or "垃圾清運收運點"
-
-    return {
-        "identifiers": {(DOMAIN, device_id)},
-        "name": point_name,
-        "manufacturer": "新北市政府環境保護局",
-        "model": model,
-    }
