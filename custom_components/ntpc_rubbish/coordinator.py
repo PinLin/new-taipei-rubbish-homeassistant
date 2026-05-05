@@ -9,6 +9,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -36,6 +37,12 @@ _OFFICIAL_LINE_ARRIVAL_CACHE_TTL = 30  # seconds – official site data is now t
 # long enough to ride out routine upstream glitches, short enough that "the
 # truck is 1.2 km away" stops claiming so when the data is genuinely old.
 _LIVE_SNAPSHOT_MAX_STALENESS_SECONDS = 300  # 5 minutes
+
+# Threshold for surfacing a repair issue. With the default 30s polling
+# cadence this is ~10 minutes of sustained failure — long enough that a
+# real outage is happening rather than a transient blip.
+_FAILURES_BEFORE_ISSUE = 20
+ISSUE_POLLING_FAILING = "polling_failing"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -569,6 +576,7 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
         self._last_vehicle_update: datetime | None = None
         self._last_update: datetime | None = None
         self._last_live_snapshot: _LiveSnapshot | None = None
+        self._consecutive_failures = 0
 
         update_interval = entry.options.get(CONF_UPDATE_INTERVAL, DEFAULT_SCAN_INTERVAL)
         super().__init__(
@@ -673,6 +681,39 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
         return around_cache[cache_key]["data"]
 
     async def _async_update_data(self) -> CollectionPointData:
+        """Update wrapper: track consecutive failures for repair-issue surfacing."""
+        try:
+            result = await self._async_do_update()
+        except UpdateFailed:
+            self._consecutive_failures += 1
+            if self._consecutive_failures >= _FAILURES_BEFORE_ISSUE:
+                self._raise_polling_issue()
+            raise
+        self._consecutive_failures = 0
+        self._clear_polling_issue()
+        return result
+
+    def _raise_polling_issue(self) -> None:
+        """Surface a Repairs entry once sustained polling failure crosses the threshold."""
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            f"{ISSUE_POLLING_FAILING}_{self._entry.entry_id}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.ERROR,
+            translation_key=ISSUE_POLLING_FAILING,
+            translation_placeholders={
+                "point_name": self._entry.data.get(CONF_POINT_NAME, ""),
+            },
+        )
+
+    def _clear_polling_issue(self) -> None:
+        """Drop the Repairs entry once the next refresh succeeds."""
+        ir.async_delete_issue(
+            self.hass, DOMAIN, f"{ISSUE_POLLING_FAILING}_{self._entry.entry_id}"
+        )
+
+    async def _async_do_update(self) -> CollectionPointData:
         """Fetch latest vehicle data and compute collection point state."""
         try:
             route_items = await self._ensure_route_data_list()

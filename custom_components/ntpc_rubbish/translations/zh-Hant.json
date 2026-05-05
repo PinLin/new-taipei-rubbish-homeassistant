@@ -120,5 +120,11 @@
         }
       }
     }
+  },
+  "issues": {
+    "polling_failing": {
+      "title": "無法連線至新北市垃圾車 API",
+      "description": "收運點 {point_name} 的資料更新已連續失敗。請確認 Home Assistant 可以連到新北市政府開放資料平台與官方即時資訊介面，並查看整合的紀錄取得詳細錯誤。連線恢復後，這則通知會自動消失。"
+    }
   }
 }
