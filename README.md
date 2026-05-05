@@ -169,6 +169,38 @@ python -m py_compile custom_components/ntpc_rubbish/*.py
 python -m pytest tests/ -v
 ```
 
+## 疑難排解
+
+### 收運點數據沒有更新
+1. 確認 Home Assistant 的網路可以正常連到外部。新北市政府的官網 API 偶爾會短暫失敗，本整合會自動重試；連續多次失敗會在**設定** > **修復**中顯示通知。
+2. 在**設定** > **裝置與服務** > **新北垃圾車**將更新間隔調短，重新拉一次資料。
+3. 透過 `ntpc_rubbish.update` 服務手動觸發更新。
+
+### 想看更詳細的紀錄
+在 `configuration.yaml` 加入：
+
+```yaml
+logger:
+  logs:
+    custom_components.ntpc_rubbish: debug
+```
+
+重啟後，相關紀錄會出現在 Home Assistant 的系統紀錄中。
+
+### 提交 Issue
+請在**設定** > **裝置與服務** > **新北垃圾車** > 三個點 > **下載診斷資料**取得 JSON，連同 Home Assistant 版本與重現步驟一起附上，能大幅縮短排查時間。
+
+## 移除整合
+
+1. 前往**設定** > **裝置與服務**。
+2. 點選 **新北垃圾車** 整合卡片中要移除的收運點。
+3. 點選右上角三個點 > **刪除**。
+4. 若不再需要本整合的程式碼，可在**HACS**中將其移除，或手動刪除 `config/custom_components/ntpc_rubbish/` 資料夾。
+
+## 免責聲明
+
+本整合為非官方、社群維護的專案，與新北市政府環境保護局無任何關係。資料來源為新北市政府公開的開放資料 API 與官方查詢介面；該介面可能在沒有預告的情況下變更或停用，本整合可能因此暫時或永久無法繼續運作。
+
 ## 授權
 
 MIT License
