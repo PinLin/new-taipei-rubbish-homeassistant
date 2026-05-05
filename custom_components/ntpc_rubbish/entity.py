@@ -1,7 +1,10 @@
 """Shared entity helpers for NTPC Rubbish integration."""
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import CONF_ENABLED_ROUTE_KEYS, CONF_ROUTES, DOMAIN
@@ -63,3 +66,40 @@ def build_device_info(
         manufacturer="新北市政府環境保護局",
         model=device_id,
     )
+
+
+class StateBroadcastDedupMixin:
+    """Skip async_write_ha_state when tracked properties haven't changed.
+
+    Each coordinator refresh fans out to every entity's
+    _handle_coordinator_update; for a 30 s polling integration with
+    ten-plus entities per point that's a lot of HA state writes for
+    payloads that are mostly identical between cycles. Subclasses
+    declare which properties drive their visible state via
+    ``_state_attrs`` and inherit this mixin alongside
+    ``CoordinatorEntity``; an empty tuple keeps the default behaviour.
+    """
+
+    _state_attrs: tuple[str, ...] = ()
+    _last_broadcast_state: tuple[Any, ...] | None = None
+
+    async def async_added_to_hass(self) -> None:
+        """Seed the last-broadcast snapshot so the first real update is honest."""
+        await super().async_added_to_hass()  # type: ignore[misc]
+        self._refresh_last_broadcast()
+
+    def _refresh_last_broadcast(self) -> bool:
+        """Recompute the snapshot. Return True if it differs from the prior one."""
+        if not self._state_attrs:
+            return True
+        snapshot = tuple(getattr(self, attr, None) for attr in self._state_attrs)
+        if snapshot != self._last_broadcast_state:
+            self._last_broadcast_state = snapshot
+            return True
+        return False
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Only broadcast when the entity's tracked state actually changed."""
+        if self._refresh_last_broadcast():
+            self.async_write_ha_state()  # type: ignore[attr-defined]

@@ -21,6 +21,7 @@ from .const import (
 )
 from .coordinator import CollectionPointData, NtpcRubbishCoordinator
 from .entity import (
+    StateBroadcastDedupMixin,
     build_device_info,
     format_scheduled_times,
     get_active_routes,
@@ -68,11 +69,14 @@ async def async_setup_entry(
 
 
 class _NtpcRubbishBaseBinarySensor(
-    CoordinatorEntity[NtpcRubbishCoordinator], BinarySensorEntity
+    StateBroadcastDedupMixin,
+    CoordinatorEntity[NtpcRubbishCoordinator],
+    BinarySensorEntity,
 ):
     """Shared base for all NTPC Rubbish binary sensors."""
 
     _attr_has_entity_name = True
+    _state_attrs = ("is_on", "extra_state_attributes", "available")
 
     def __init__(
         self,

@@ -18,6 +18,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import CONF_LATITUDE, CONF_LONGITUDE, CONF_POINT_NAME, CONF_SCHEDULED_TIME, DOMAIN
 from .coordinator import CollectionPointData, NtpcRubbishCoordinator
 from .entity import (
+    StateBroadcastDedupMixin,
     build_device_info,
     format_scheduled_times,
     get_active_routes,
@@ -53,11 +54,12 @@ async def async_setup_entry(
 
 
 class _NtpcRubbishBaseSensor(
-    CoordinatorEntity[NtpcRubbishCoordinator], SensorEntity
+    StateBroadcastDedupMixin, CoordinatorEntity[NtpcRubbishCoordinator], SensorEntity
 ):
     """Shared base for all NTPC Rubbish sensors."""
 
     _attr_has_entity_name = True
+    _state_attrs = ("native_value", "extra_state_attributes", "available")
 
     def __init__(
         self,
