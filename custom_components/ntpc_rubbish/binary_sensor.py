@@ -118,8 +118,6 @@ class _NtpcRubbishBaseBinarySensor(
 class GarbageTodaySensor(_NtpcRubbishBaseBinarySensor):
     """On when general garbage is collected today."""
 
-    _attr_icon = "mdi:trash-can"
-
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
         super().__init__(coordinator, entry, device_id, point_name, scheduled_times, "garbage_today")
 
@@ -132,8 +130,6 @@ class GarbageTodaySensor(_NtpcRubbishBaseBinarySensor):
 
 class RecyclingTodaySensor(_NtpcRubbishBaseBinarySensor):
     """On when recycling is collected today."""
-
-    _attr_icon = "mdi:recycle"
 
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
         super().__init__(coordinator, entry, device_id, point_name, scheduled_times, "recycling_today")
@@ -148,8 +144,6 @@ class RecyclingTodaySensor(_NtpcRubbishBaseBinarySensor):
 class FoodScrapsTodaySensor(_NtpcRubbishBaseBinarySensor):
     """On when food scraps (kitchen waste) are collected today."""
 
-    _attr_icon = "mdi:food-apple-outline"
-
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
         super().__init__(coordinator, entry, device_id, point_name, scheduled_times, "food_scraps_today")
 
@@ -162,8 +156,6 @@ class FoodScrapsTodaySensor(_NtpcRubbishBaseBinarySensor):
 
 class TruckDepartedSensor(_NtpcRubbishBaseBinarySensor):
     """On when the official live data shows the truck already passed this point."""
-
-    _attr_icon = "mdi:truck-check-outline"
 
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
         super().__init__(coordinator, entry, device_id, point_name, scheduled_times, "truck_departed")

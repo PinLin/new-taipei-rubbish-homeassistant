@@ -1,0 +1,35 @@
+{
+  "entity": {
+    "sensor": {
+      "nearest_truck_distance": {
+        "default": "mdi:truck-outline"
+      },
+      "next_collection": {
+        "default": "mdi:calendar-clock"
+      },
+      "collection_status": {
+        "default": "mdi:truck-fast-outline"
+      },
+      "eta_minutes": {
+        "default": "mdi:timer-outline"
+      },
+      "last_update": {
+        "default": "mdi:clock-outline"
+      }
+    },
+    "binary_sensor": {
+      "garbage_today": {
+        "default": "mdi:trash-can"
+      },
+      "recycling_today": {
+        "default": "mdi:recycle"
+      },
+      "food_scraps_today": {
+        "default": "mdi:food-apple-outline"
+      },
+      "truck_departed": {
+        "default": "mdi:truck-check-outline"
+      }
+    }
+  }
+}

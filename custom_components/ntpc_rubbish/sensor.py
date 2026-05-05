@@ -131,7 +131,6 @@ class NearestTruckDistanceSensor(_NtpcRubbishBaseSensor):
     _attr_native_unit_of_measurement = "m"
     _attr_device_class = SensorDeviceClass.DISTANCE
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_icon = "mdi:truck-outline"
 
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
         super().__init__(coordinator, entry, device_id, point_name, scheduled_times, "nearest_truck_distance")
@@ -150,7 +149,6 @@ class NearestTruckDistanceSensor(_NtpcRubbishBaseSensor):
 class NextCollectionSensor(_NtpcRubbishBaseSensor):
     """Shows the scheduled collection time for the current active run."""
 
-    _attr_icon = "mdi:calendar-clock"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
@@ -180,8 +178,6 @@ class NextCollectionSensor(_NtpcRubbishBaseSensor):
 class CollectionStatusSensor(_NtpcRubbishBaseSensor):
     """Shows the official NTPC collection status text for the current route."""
 
-    _attr_icon = "mdi:truck-fast-outline"
-
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
         super().__init__(coordinator, entry, device_id, point_name, scheduled_times, "collection_status")
 
@@ -199,7 +195,6 @@ class CollectionStatusSensor(_NtpcRubbishBaseSensor):
 class EtaMinutesSensor(_NtpcRubbishBaseSensor):
     """Shows the estimated arrival time of the nearest truck."""
 
-    _attr_icon = "mdi:timer-outline"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
@@ -228,7 +223,6 @@ class LastUpdateSensor(_NtpcRubbishBaseSensor):
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:clock-outline"
 
     def __init__(self, coordinator, entry, device_id, point_name, scheduled_times) -> None:
         super().__init__(coordinator, entry, device_id, point_name, scheduled_times, "last_update")
