@@ -231,4 +231,4 @@ class LastUpdateSensor(_NtpcRubbishBaseSensor):
 
     @property
     def native_value(self) -> datetime | None:
-        return self.coordinator.last_update
+        return self.coordinator.last_update_success_time

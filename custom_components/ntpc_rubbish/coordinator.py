@@ -10,7 +10,10 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import (
+    TimestampDataUpdateCoordinator,
+    UpdateFailed,
+)
 from homeassistant.util import dt as dt_util
 
 from .api import NtpcRubbishApiClient, NtpcRubbishApiError
@@ -560,7 +563,7 @@ def _resolve_truck_departure_state(
 
 
 
-class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
+class NtpcRubbishCoordinator(TimestampDataUpdateCoordinator[CollectionPointData]):
     """Coordinator that polls vehicle location and computes collection status."""
 
     def __init__(
@@ -574,7 +577,6 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
         self._route_data: dict[str, Any] | None = None
         self._route_last_updated: datetime | None = None
         self._last_vehicle_update: datetime | None = None
-        self._last_update: datetime | None = None
         self._last_live_snapshot: _LiveSnapshot | None = None
         self._consecutive_failures = 0
 
@@ -585,11 +587,6 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
             name=f"{DOMAIN}_{entry.entry_id}",
             update_interval=timedelta(seconds=update_interval),
         )
-
-    @property
-    def last_update(self) -> datetime | None:
-        """Wall-clock time of the last successful refresh."""
-        return self._last_update
 
     def _get_routes(self) -> list[dict[str, Any]]:
         """Return the list of routes for this entry."""
@@ -877,7 +874,6 @@ class NtpcRubbishCoordinator(DataUpdateCoordinator[CollectionPointData]):
         scheduled_time_str = format_scheduled_times(self._get_routes()) or route.get("time", "")
         display_route = display_route_items[0] if display_route_items else route
         first_lineid = display_route.get("lineid", self._get_routes()[0]["lineid"])
-        self._last_update = dt_util.now()
         return CollectionPointData(
             point_name=self._entry.data.get(CONF_POINT_NAME, route.get("name", "")),
             district=self._entry.data.get(CONF_DISTRICT, route.get("city", "")),
