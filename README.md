@@ -2,7 +2,6 @@
 
 [![GitHub Release](https://img.shields.io/github/release/PinLin/new-taipei-rubbish-homeassistant.svg?style=flat-square)](https://github.com/PinLin/new-taipei-rubbish-homeassistant/releases)
 [![HACS Badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=flat-square)](https://github.com/hacs/integration)
-[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
 將新北市垃圾車清運資訊整合到 Home Assistant，提供清運時間、垃圾車狀態與預估到站時間的即時監控。
 
@@ -200,7 +199,3 @@ logger:
 ## 免責聲明
 
 本整合為非官方、社群維護的專案，與新北市政府環境保護局無任何關係。資料來源為新北市政府公開的開放資料 API 與官方查詢介面；該介面可能在沒有預告的情況下變更或停用，本整合可能因此暫時或永久無法繼續運作。
-
-## 授權
-
-MIT License
